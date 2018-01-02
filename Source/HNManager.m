@@ -283,12 +283,19 @@ static HNManager * _sharedManager = nil;
     
     request.cachePolicy = NSURLCacheStorageNotAllowed;
     [NSURLConnection sendAsynchronousRequest:request queue:queue completionHandler:^(NSURLResponse *response, NSData *data, NSError *connectionError) {
-        if (![data isEqualToData:jsonData]) {
+        if(jsonData != NULL) {
+            if (![data isEqualToData:jsonData]) {
+                NSString *newData = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+                [[NSUserDefaults standardUserDefaults] setValue:newData forKey:kHNJSONConfigurationKey];
+                [[NSUserDefaults standardUserDefaults] synchronize];
+                self.JSONConfiguration = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingAllowFragments error:nil];
+                [[NSNotificationCenter defaultCenter] postNotificationName:kHNShouldReloadDataFromConfiguration object:nil];
+            }
+        } else {
             NSString *newData = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
             [[NSUserDefaults standardUserDefaults] setValue:newData forKey:kHNJSONConfigurationKey];
             [[NSUserDefaults standardUserDefaults] synchronize];
-            self.JSONConfiguration = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingAllowFragments error:nil];
-            [[NSNotificationCenter defaultCenter] postNotificationName:kHNShouldReloadDataFromConfiguration object:nil];
+            [self downloadAndSetConfiguration];
         }
     }];
 }
